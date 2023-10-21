@@ -1,0 +1,6 @@
+*.txt
+test.cpp 
+ULTIMATE_TEST.CPP
+*.o
+*.exe
+*.out
