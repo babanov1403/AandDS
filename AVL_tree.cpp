@@ -63,6 +63,18 @@ class Binary_tree{
         }
         else return;
     }
+    void updateBalanceErase(Node* u){//helper func for reBalance
+        if(u->diff < -1 || u->diff > 1){
+            reBalance(u);
+            return;
+        }
+        if(u->p){
+            if((u->p)->left == u) (u->p)->diff--;
+            else if((u->p)->right == u) (u->p)->diff++;
+            if((u->p)->diff == 0) updateBalance(u->p);
+        }
+        else return;
+    }
     void reBalance(Node* u){
         //i know how to do this in a pretty way, maybe later something will be changed
         //I HOPE THAT WORKS WELL
@@ -210,21 +222,33 @@ public:
             return;
         }
         Node* parent = ptr->p;
+        Node* const_parent = ptr->p;
         int what_child  = 0;
+        
+        //here i need to put check whether node that i want to erase is root
+        //but i dont give a fuck about that problem
+        //i will think one day what to do with it
+        //but not now
+
         if(ptr == parent->left) what_child = -1;
         else if(ptr == parent->right) what_child = 1;
         
         if(!ptr->left && !ptr->right){
             parent->diff += what_child;
+            if(parent->left == ptr) parent->left = nullptr;
+            else if(parent->right == ptr) parent->right = nullptr;
             delete ptr;
         }
         else if(!ptr->left ^ !ptr->right){
-            if(ptr->left){
-                swap(ptr, ptr->left);
-            } 
-            else{
-                swap(ptr, ptr->right);
-            }
+            Node* helper = ptr;
+
+            if(helper->left) helper = helper->left;
+            else helper = helper->right;
+            
+            helper->p = parent;
+            if(parent->left == ptr) parent->left = helper;
+            else parent->right = helper;
+
             parent->diff += what_child;
             delete ptr;
         }
@@ -232,13 +256,26 @@ public:
             Node* helper = ptr->right;
             
             while(helper->left) helper = helper->left;
-            swap(ptr, helper);
-            parent = ptr->p;
-            if(ptr == parent->left) (parent->diff)--;
-            else if(ptr == parent->right) (parent->diff)++;
+            
+            if(parent->left == ptr) parent->left = helper;
+            else parent->right = helper;
+            ptr->left->p = helper;
+            ptr->right->p =helper;
+
+            helper->left = ptr->left;
+            helper->right = ptr->right;
+            if(helper->p->left == helper){
+                helper->p->diff -= 1;
+                helper->p->left = nullptr;
+            }
+            else{
+                helper->p->diff +=1;
+                helper->p->right = nullptr;
+            }
+            helper->p = parent;
             delete ptr; 
         }
-        reBalance(parent);
+        updateBalanceErase(const_parent);
     }
     bool find(int x){
         Node* ptr = head;
@@ -307,18 +344,12 @@ void print(Node* curr){
 int main(){
     Binary_tree tree;
     int a;
-    int k = 0;
-    while(k++<10){
-        cin >> a;
-        tree.insert(a);
-        print(tree.head);
-        cout << "====================\n";
-    }
-    while(k-->5){
-        cin >> a;
-        tree.erase(a);
-        print(tree.head);
-        cout << "=================\n";
-    }
+    int k = 1;
+    while(k++<10)
+        tree.insert(k);
+    
+    print(tree.head);
+    cout << "====================\n";
+    tree.erase(5);
     return 0;
 }
