@@ -1,22 +1,17 @@
 #include <iostream>
 using namespace std;
-
-class A{
-public:
-    int x;
-    A(){
-        cout << "A created\n";
-    }
-    A(int x) : x(x){
-        cout << "A created with " << x <<'\n';
-    }
-
-    ~A(){
-        cout << "~A\n";
-    }
+template <bool B, typename T, typename V>
+struct conditional{
+    using type = T;
 };
 
+template <>
+struct conditional<true>{
+    using type = int;
+};
+
+template <bool B, typename T, typename V>
+using conditional_tx = typename conditional<B, T, V>::type;
 int main(){
-    A* a = new A(5);
-    delete a;
+    return 0;
 }
