@@ -120,6 +120,7 @@ public:
 
                 }// i think there's a bug
             }
+
             else{
                 /*
                 * if we are here, we facing a problem : we need to downgrade to 
@@ -136,7 +137,7 @@ public:
                // []        []    [prev]         [][]
                //[][nextLeft][next]    [nextRight][][]
                Node* nextLeft, *nextRight;
-               int pos = (prev->keys[i] < key) ? i : i + 1;
+               int pos = (prev->keys[i] < key) ? i+1 : i;
                nextLeft = (pos - 1 >= 0) ? prev->children[pos-1] : nullptr;
                nextRight = (pos + 1 < prev->children.size()) ? prev->children[pos + 1] : nullptr;
                 
@@ -151,8 +152,8 @@ public:
                         swap(next->keys.front(), prev->keys.back());
                     }
                     else{
-                        prev = next;
                         next = mergeTwoChild(prev, nextLeft, next, i);
+
                     }
                }
                else if(nextRight){
@@ -164,7 +165,6 @@ public:
                         swap(next->keys.back(), prev->keys.front());
                     }
                     else{
-                        prev = next;
                         next = mergeTwoChild(prev, next, nextRight, i);
                     }
                }
@@ -186,12 +186,13 @@ private:
             merged->keys.push_back(right->keys[i]);
             merged->children.push_back(right->children[i]);
         }
+        cout << pos << "<-----\n";
         merged->children.push_back(right->children.back());
         curr->keys.erase(curr->keys.begin()+pos);
         curr->children.erase(curr->children.begin()+pos); //??
         curr->children[pos] = merged;
-        /*delete left;
-        delete right;*/
+        delete left;
+        delete right;
         return merged;
     }
 
@@ -308,5 +309,10 @@ int main(){
     tree.erase(7);
     if(tree.find(7)) cout << "Found 7!\n";
     else cout << "Not found 7!\n";
+    tree.insert(20);
+    tree.insert(19);
+    tree.insert(18);
+    tree.insert(17);
+    tree.erase(12);
     return 0;
 }
