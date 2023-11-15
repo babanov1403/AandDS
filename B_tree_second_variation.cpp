@@ -35,8 +35,7 @@ public:
         while(curr){
             //make here somthing like data-getter
             //but for now it will cost O(1) by *ptr
-            auto num = lower_bound(curr->keys.begin(), curr->keys.end(), key);
-            int i = curr->keys.begin() - num;
+            int i = lower_bound(curr->keys.begin(), curr->keys.end(), key) - curr->keys.begin();
             if(i<curr->keys.size() && curr->keys[i] == key) return true;
             else curr = (curr->keys[i] < key) ? curr->children[i] : curr->children[i+1]; // i think there's a bug
         }
@@ -93,34 +92,129 @@ public:
     }
 
     void erase(int key){
-        /*
-        * 0) we need to check whether our key in a root or not
-        * 1) if our key in a leaf
-        *
-        * 
-        */
         Node* curr = root;
-        int pos;
         while(curr){
-            if(curr != root && curr->keys.size() == T-1) //now we need make here
-            pos = lower_bound(curr->keys.begin(), curr->keys.end(), key) - curr->keys.begin();
-            if(i<curr->keys.size() && curr->keys[pos] == key) break;
-            else curr = (curr->keys[pos] < key) ? curr->children[pos] : curr->children[pos+1]; // i think there's a bug
+            if(curr->keys.size() >= T){
+                int i = lower_bound(curr->keys.begin(), curr->keys.end(), key) - curr->keys.begin();
+                if(i<curr->keys.size() && curr->keys[i] == key){
+                    eraseIfFound(curr, key);
+                    return;
+                }
+                else curr = (curr->keys[i] < key) ? curr->children[i] : curr->children[i+1]; // i think there's a bug
+            }
+            else break;
         }
-        if(!curr){
-            cout << "nothing to erase\n";
+        
+    }
+private:
+    Node* mergeTwoChild(Node* curr, Node* left, Node* right, int pos){
+        Node* merged = new Node(vector<int>(left->keys.begin(), left->keys.end()), vector<Node*>(left->children.begin(), vector<Node*>(left->children.end())));
+        merged->keys.push_back(curr->keys[pos]);
+        for(int i = 0; i<T-1; i++){
+            merged->keys.push_back(right->keys[i]);
+            merged->children.push_back(right->children[i]);
+        }
+        merged->children.push_back(right->children.back());
+        curr->keys.erase(curr->keys.begin()+pos);
+        curr->children.erase(curr->children.begin()+pos); //??
+        curr->children[pos] = merged;
+        delete left;
+        delete right;
+        return merged;
+    }
+
+
+    void eraseIfFound(Node* curr, int key){
+        int pos = lower_bound(curr->keys.begin(), curr->keys.end(), key) - curr->keys.begin();
+        Node* posLeftChild = curr->children[pos];
+        Node* posRightChild = curr->children[pos+1];
+        if(!posLeftChild && !posRightChild){
+            //we operate with a leaf now(which has more than T keys)
+            curr->keys.erase(curr->keys.begin()+pos);
+            curr->children.erase(curr->keys.begin()+pos);
             return;
         }
-        Node* currIt = curr->children[pos];
-        if(!currIt){//(1)
-            if(curr->keys.size() >= T){
-                //just erase
-                curr->keys.erase(v.begin() + pos);
-                return;
-            }
-
-
+        if(posRightChild->keys.size() == T-1 && posLeftChild->keys.size() == T-1){
+            //merging
+            Node* merged = mergeTwoChild(curr, posLeftChild, posRightChild, pos);
+            eraseIfFound(merged, key); // bad practice
         }
+
+        //consider right child
+
+        if(posRightChild->keys.size() >= T){
+            /*
+            1) we're traversing down to the left-est child of this, but always checking if keys.size() >=T
+            2) if not, we need to "make a path" for us and borrow a key from neighbour node
+            */
+           Node* prev = posRightChild;
+           Node* nextLeft = posRightChild->children.front();
+           Node* nextRight = posRightChild->children[1];
+           while(nextLeft){
+                if(nextLeft->keys.size() >= T){
+                    prev = nextLeft;
+                    nextRight = prev->children[1];
+                    nextLeft = nextLeft->children.front(); 
+                }
+                else if(nextRight->keys.size() >= T){
+                    //borrow from right child
+                    nextLeft->keys.push_back(nextRight->keys.front());
+                    nextRight->keys.erase(nextRight->keys.begin());
+                    nextLeft->children.push_back(nextRight->children.front());
+                    nextLeft->children.erase(nextLeft->children.begin());
+                    swap(nextLeft->keys.back(), prev->keys.front());
+
+                    //and do some other stuff
+                    prev = nextLeft;
+                    nextRight = prev->children[1];
+                    nextLeft = prev->children[0];
+                }
+                else{
+                    Node* prev = mergeTwoChild(prev, nextLeft, nextRight, 0);
+                    nextRight = prev->children[1];
+                    nextLeft = prev->children[0];
+                }
+           }
+        }
+
+        if(posLeftChild->keys.size() >= T){
+             /*
+            1) we're traversing down to the left-est child of this, but always checking if keys.size() >=T
+            2) if not, we need to "make a path" for us and borrow a key from neighbour node
+            */
+           Node* prev = posLeftChild;
+           Node* nextLeft = posLeftChild->children[posLeftChild->children.size()-2];
+           Node* nextRight = posLeftChild->children.back();
+           while(nextRight){
+                if(nextRight->keys.size() >= T){
+                    prev = nextRight;
+                    nextLeft = prev->children[posLeftChild->children.size()-2];
+                    nextRight = prev->children.back();
+                }
+                else if(nextLeft->keys.size() >= T){
+                    //borrow from left child
+                    nextRight->keys.insert(nextRight->keys.begin(), nextLeft->keys.back());
+                    nextLeft->keys.pop_back()
+                    nextRight->children.insert(nextRight->children.begin(), nextLeft->children.back());
+                    nextLeft->children.pop_back();
+                    swap(nextRight->keys.front(), prev->keys.back());
+
+                    //and do some other stuff 
+                    prev = nextRight;
+                    nextRight = prev->children.back();
+                    nextLeft = prev->children[prev->children.size() - 2];
+                }
+                else{
+                    Node* prev = mergeTwoChild(prev, nextLeft, nextRight, T-2);
+                    nextRight = prev->children.back();
+                    nextLeft = prev->children[prev->children.size() - 2];
+                }
+           }
+        }   
+
+
+
+        
     }
 };
 
